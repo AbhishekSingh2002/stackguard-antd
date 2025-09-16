@@ -14,6 +14,12 @@ export default function Configuration() {
   const navigate = useNavigate()
   const auth = getAuth()
   const [isFormReady, setIsFormReady] = useState(false)
+  const [currentKey, setCurrentKey] = useState(initialKey)
+  
+  // Debug: log what's in localStorage on mount
+  console.log("Configuration - Component mounted")
+  console.log("Configuration - initialKey from localStorage:", initialKey)
+  console.log("Configuration - initialKey length:", initialKey.length)
 
   // Initialize form values when component mounts and form is ready
   useEffect(() => {
@@ -22,6 +28,7 @@ export default function Configuration() {
       console.log("Configuration - initialKey length:", initialKey.length)
       try {
         form.setFieldsValue({ configKey: initialKey })
+        setCurrentKey(initialKey)
         console.log("Configuration - form value set successfully")
       } catch (error) {
         console.error("Configuration - error setting form value:", error)
@@ -68,6 +75,7 @@ export default function Configuration() {
     const testKey = "test-configuration-key-" + "a".repeat(100) + "-end"
     if (form && form.setFieldsValue) {
       form.setFieldsValue({ configKey: testKey })
+      setCurrentKey(testKey)
       message.success("Test key filled (120 characters)")
     }
   }
@@ -92,8 +100,32 @@ export default function Configuration() {
     navigate("/auth")
   }
 
+  const handleKeyChange = (e) => {
+    const value = e.target.value
+    console.log("handleKeyChange called with value length:", value.length)
+    setCurrentKey(value)
+    
+    // If user clears the field, also clear the form value to ensure consistency
+    if (value === "") {
+      form.setFieldsValue({ configKey: "" })
+    }
+  }
+
+  const handleClearKey = () => {
+    setCurrentKey("")
+    form.setFieldsValue({ configKey: "" })
+    // Also clear from localStorage
+    try {
+      localStorage.removeItem("stackguard_config_key_v1")
+      console.log("Configuration key cleared from localStorage")
+      message.success("Configuration key cleared")
+    } catch (error) {
+      console.error("Error clearing config key from localStorage:", error)
+    }
+  }
+
   // Get current key from form for UI display
-  const currentKey = form && form.getFieldValue ? form.getFieldValue("configKey") || "" : ""
+  console.log("Render - currentKey length:", currentKey.length)
   const progress = Math.min(100, Math.round((currentKey.length / 1000) * 100))
   const isValid = validateKey(currentKey)
 
@@ -142,6 +174,7 @@ export default function Configuration() {
                       rows={8}
                       placeholder="Paste your configuration key here..."
                       style={{ fontFamily: "monospace" }}
+                      onChange={handleKeyChange}
                     />
                   </Form.Item>
 
@@ -160,7 +193,7 @@ export default function Configuration() {
                   </div>
 
                   <Row gutter={16}>
-                    <Col span={8}>
+                    <Col span={6}>
                       <Button 
                         onClick={handleQuickFill} 
                         block
@@ -169,7 +202,17 @@ export default function Configuration() {
                         Quick Fill
                       </Button>
                     </Col>
-                    <Col span={8}>
+                    <Col span={6}>
+                      <Button 
+                        onClick={handleClearKey} 
+                        block
+                        danger
+                        style={{ marginBottom: 16 }}
+                      >
+                        Clear
+                      </Button>
+                    </Col>
+                    <Col span={6}>
                       <Button 
                         onClick={handleCopy} 
                         icon={<CopyOutlined />} 
@@ -179,7 +222,7 @@ export default function Configuration() {
                         Copy
                       </Button>
                     </Col>
-                    <Col span={8}>
+                    <Col span={6}>
                       <Button 
                         type="primary" 
                         htmlType="submit" 
